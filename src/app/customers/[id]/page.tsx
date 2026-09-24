@@ -81,6 +81,7 @@ export default function CustomerDetailPage({
       {customer && (
         <div className="space-y-5">
           <InfoCard customer={customer} onSaved={cust.reload} />
+          <PasswordCard customer={customer} />
           {subs.loading && !subs.data ? (
             <p className="text-sm text-muted">Đang tải gói…</p>
           ) : sub ? (
@@ -121,6 +122,49 @@ function useSave() {
     }
   }
   return { saving, msg, run };
+}
+
+function randomPassword(len = 12) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  const buf = new Uint32Array(len);
+  crypto.getRandomValues(buf);
+  return Array.from(buf, (n) => chars[n % chars.length]).join("");
+}
+
+function PasswordCard({ customer }: { customer: Customer }) {
+  const [newPw, setNewPw] = useState("");
+  const { saving, msg, run } = useSave();
+  return (
+    <Card className="p-5">
+      <h2 className="mb-1 text-sm font-semibold">Đổi mật khẩu</h2>
+      <p className="mb-3 text-xs text-muted">
+        Bấm nút để tạo mật khẩu ngẫu nhiên mới cho khách hàng. Mật khẩu chỉ hiện một lần, hãy sao chép gửi cho khách.
+      </p>
+      {newPw && (
+        <div className="mb-3 rounded-lg border border-border bg-background p-3 text-sm">
+          Mật khẩu mới: <span className="font-mono font-semibold select-all">{newPw}</span>
+        </div>
+      )}
+      {msg && <div className="mb-3"><Notice tone={msg.tone}>{msg.text}</Notice></div>}
+      <div className="flex justify-end">
+        <Button
+          disabled={saving}
+          onClick={() => {
+            const pw = randomPassword();
+            setNewPw("");
+            void run(async () => {
+              await apiSend(`/api/customers/${customer.id}/password`, "PATCH", {
+                newPassword: pw,
+              });
+              setNewPw(pw);
+            }, "Đã đổi mật khẩu");
+          }}
+        >
+          {saving ? "Đang đổi…" : "Đổi mật khẩu"}
+        </Button>
+      </div>
+    </Card>
+  );
 }
 
 function InfoCard({ customer, onSaved }: { customer: Customer; onSaved: () => void }) {
