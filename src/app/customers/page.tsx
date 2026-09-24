@@ -39,7 +39,10 @@ type Sub = {
 const subUsername = (s: Sub) =>
   typeof s.userId === "string" ? s.userId : (s.userId?.username ?? "");
 
-type Dialog = { kind: "create" } | { kind: "password"; customer: Customer };
+type Dialog =
+  | { kind: "create" }
+  | { kind: "password"; customer: Customer }
+  | { kind: "delete"; customer: Customer };
 
 export default function CustomersPage() {
   const cust = useApi<Customer[]>("/api/customers");
@@ -133,6 +136,14 @@ export default function CustomersPage() {
                       >
                         {c.isActive ? "Khoá" : "Mở khoá"}
                       </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        disabled={busy === c.id}
+                        onClick={() => setDialog({ kind: "delete", customer: c })}
+                      >
+                        Xoá
+                      </Button>
                     </div>
                   </Td>
                 </Tr>
@@ -156,6 +167,16 @@ export default function CustomersPage() {
           customer={dialog.customer}
           onClose={() => setDialog(null)}
           onDone={() => setDialog(null)}
+        />
+      )}
+      {dialog?.kind === "delete" && (
+        <DeleteDialog
+          customer={dialog.customer}
+          onClose={() => setDialog(null)}
+          onDone={() => {
+            setDialog(null);
+            cust.reload();
+          }}
         />
       )}
       {dialog?.kind === "create" && (
@@ -252,6 +273,53 @@ function PasswordDialog({
           )
         }
       />
+    </Modal>
+  );
+}
+
+function DeleteDialog({
+  customer,
+  onClose,
+  onDone,
+}: {
+  customer: Customer;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [confirmText, setConfirmText] = useState("");
+  const { saving, error, run } = useSubmit(onDone);
+  const matched = confirmText.trim() === customer.username;
+  return (
+    <Modal title={`Xoá khách hàng · ${customer.username}`} onClose={onClose}>
+      <p className="text-sm text-danger">
+        Thao tác này xoá vĩnh viễn tài khoản, nhân sự, tài khoản Zalo, chiến
+        dịch, lịch trình, lịch sử chat, lời mời kết bạn, proxy và đăng ký gói
+        của khách hàng này. Không thể hoàn tác.
+      </p>
+      <Field label={`Gõ lại "${customer.username}" để xác nhận`}>
+        <input
+          className={inputCls}
+          autoComplete="off"
+          autoFocus
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+        />
+      </Field>
+      {error && <p className="mt-3 text-sm text-danger">{error}</p>}
+      <div className="mt-4 flex justify-end gap-2">
+        <Button variant="ghost" onClick={onClose}>
+          Huỷ
+        </Button>
+        <Button
+          variant="danger"
+          disabled={saving || !matched}
+          onClick={() =>
+            run(() => apiSend(`/api/customers/${customer.id}`, "DELETE"))
+          }
+        >
+          {saving ? "Đang xoá…" : "Xoá vĩnh viễn"}
+        </Button>
+      </div>
     </Modal>
   );
 }

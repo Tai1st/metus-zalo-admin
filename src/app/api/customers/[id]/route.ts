@@ -16,3 +16,10 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     beAsAdmin(token, `/admin/customers/${id}`, { method: "PATCH", body }),
   );
 }
+
+export async function DELETE(req: NextRequest, { params }: Ctx) {
+  const { id } = await params;
+  return withAdmin(req, (token) =>
+    beAsAdmin(token, `/admin/customers/${id}`, { method: "DELETE" }),
+  );
+}
