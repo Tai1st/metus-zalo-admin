@@ -39,7 +39,7 @@ type Sub = {
 const subUsername = (s: Sub) =>
   typeof s.userId === "string" ? s.userId : (s.userId?.username ?? "");
 
-type Dialog = { kind: "create" };
+type Dialog = { kind: "create" } | { kind: "password"; customer: Customer };
 
 export default function CustomersPage() {
   const cust = useApi<Customer[]>("/api/customers");
@@ -151,6 +151,13 @@ export default function CustomersPage() {
         </Table>
       </Card>
 
+      {dialog?.kind === "password" && (
+        <PasswordDialog
+          customer={dialog.customer}
+          onClose={() => setDialog(null)}
+          onDone={() => setDialog(null)}
+        />
+      )}
       {dialog?.kind === "create" && (
         <CreateDialog
           onClose={() => setDialog(null)}
@@ -206,6 +213,46 @@ function Footer({
         </Button>
       </div>
     </>
+  );
+}
+
+function PasswordDialog({
+  customer,
+  onClose,
+  onDone,
+}: {
+  customer: Customer;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [pw, setPw] = useState("");
+  const { saving, error, run } = useSubmit(onDone);
+  return (
+    <Modal title={`Đổi mật khẩu · ${customer.username}`} onClose={onClose}>
+      <Field label="Mật khẩu mới (tối thiểu 8 ký tự)">
+        <input
+          className={inputCls}
+          type="text"
+          autoComplete="off"
+          autoFocus
+          value={pw}
+          onChange={(e) => setPw(e.target.value)}
+        />
+      </Field>
+      <Footer
+        error={error}
+        saving={saving}
+        label="Đổi mật khẩu"
+        onClose={onClose}
+        onSave={() =>
+          run(() =>
+            apiSend(`/api/customers/${customer.id}/password`, "PATCH", {
+              newPassword: pw,
+            }),
+          )
+        }
+      />
+    </Modal>
   );
 }
 

@@ -6,6 +6,7 @@ import { inputCls } from "@/components/ui";
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -61,14 +62,37 @@ export default function LoginPage() {
           </label>
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium">Mật khẩu</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              required
-              className={inputCls}
-            />
+            <span className="relative block">
+              <input
+                type={showPw ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+                className={`${inputCls} pr-9`}
+              />
+              <button
+                type="button"
+                tabIndex={-1}
+                onClick={() => setShowPw((v) => !v)}
+                className={`absolute right-2.5 top-1/2 -translate-y-1/2 ${showPw ? "text-blue-600" : "text-gray-400"}`}
+                aria-label="Hiện / ẩn mật khẩu"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+            </span>
           </label>
           {error && <p className="text-sm font-medium text-danger">{error}</p>}
           <button
