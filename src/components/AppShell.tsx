@@ -19,9 +19,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen flex-col">
       <header className="flex h-14 shrink-0 items-center justify-between bg-brand px-5 text-white">
         <div className="flex items-center gap-2">
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-white text-sm font-bold text-brand">
-            A
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="Metus Zalo" width={28} height={28} className="h-7 w-7 shrink-0 rounded-full" />
           <span className="text-base font-semibold">Metus Zalo Admin</span>
         </div>
         <HeaderUser />

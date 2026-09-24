@@ -36,9 +36,8 @@ export default function LoginPage() {
   return (
     <div className="grid min-h-screen place-items-center bg-background p-4">
       <div className="w-full max-w-sm rounded-2xl bg-surface p-8 shadow-lg">
-        <span className="grid h-10 w-10 place-items-center rounded-full bg-brand text-base font-extrabold text-white">
-          A
-        </span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.svg" alt="Metus Zalo" width={40} height={40} className="h-10 w-10 rounded-full" />
         <h1 className="mt-6 text-xl font-bold">Metus Zalo Admin</h1>
         <p className="mt-1 text-sm text-muted">
           Chỉ tài khoản quản trị mới đăng nhập được vào đây.
