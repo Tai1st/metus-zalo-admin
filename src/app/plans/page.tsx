@@ -220,7 +220,7 @@ export default function PlansPage() {
           onClose={() => setEditing(null)}
         >
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="Mã (code)">
                 <input
                   className={inputCls}
@@ -287,7 +287,7 @@ export default function PlansPage() {
                 />
               </Field>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="Số tài khoản đi kèm">
                 <input
                   className={inputCls}

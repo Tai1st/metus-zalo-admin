@@ -144,7 +144,7 @@ export function DateTimePicker({
       </div>
 
       {open && (
-        <div className="absolute left-0 z-50 mt-1 flex min-w-[280px] flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-2xl sm:min-w-[500px] sm:flex-row">
+        <div className="absolute left-0 z-50 mt-1 flex w-[min(92vw,500px)] max-w-[92vw] min-w-[280px] flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-2xl sm:min-w-[500px] sm:flex-row">
           <div className="flex gap-1 overflow-x-auto border-b border-border bg-background p-2 sm:w-36 sm:flex-col sm:overflow-visible sm:border-b-0 sm:border-r">
             <div className="hidden px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted sm:block">
               Chọn nhanh

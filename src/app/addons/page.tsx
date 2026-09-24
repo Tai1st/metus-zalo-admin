@@ -186,7 +186,7 @@ export default function AddonsPage() {
           onClose={() => setEditing(null)}
         >
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="Mã (code)">
                 <input
                   className={inputCls}
@@ -203,7 +203,7 @@ export default function AddonsPage() {
                 />
               </Field>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="Số tài khoản thêm">
                 <input
                   className={inputCls}
@@ -222,7 +222,7 @@ export default function AddonsPage() {
                 />
               </Field>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Field label="Giá 3 tháng (đ)">
                 <input
                   className={inputCls}
