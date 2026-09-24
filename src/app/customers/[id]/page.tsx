@@ -375,11 +375,14 @@ function GrantCard({
 }) {
   const sellable = plans.filter((p) => p.isActive);
   const [planId, setPlanId] = useState("");
-  const [months, setMonths] = useState(3);
+  const [chosenMonths, setMonths] = useState(3);
   const [addonId, setAddonId] = useState("");
   const { saving, msg, run } = useSave();
 
   const plan = sellable.find((p) => p.id === planId) ?? sellable[0];
+  const months = plan?.prices.some((p) => p.months === chosenMonths)
+    ? chosenMonths
+    : (plan?.prices[0]?.months ?? chosenMonths);
   const usable = addons.filter((a) => a.isActive && a.requiresPlanCode === plan?.code);
 
   return (
