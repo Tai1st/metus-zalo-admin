@@ -39,6 +39,7 @@ type FormState = {
   name: string;
   tagline: string;
   description: string;
+  p1: string;
   p3: string;
   p6: string;
   p12: string;
@@ -52,6 +53,7 @@ const EMPTY: FormState = {
   name: "",
   tagline: "",
   description: "",
+  p1: "",
   p3: "",
   p6: "",
   p12: "",
@@ -67,6 +69,7 @@ function toForm(p: Plan): FormState {
     name: p.name,
     tagline: p.tagline,
     description: p.description,
+    p1: price(1)?.toString() ?? "",
     p3: price(3)?.toString() ?? "",
     p6: price(6)?.toString() ?? "",
     p12: price(12)?.toString() ?? "",
@@ -78,7 +81,7 @@ function toForm(p: Plan): FormState {
 
 function toBody(f: FormState) {
   const prices: PricePoint[] = [];
-  for (const [months, raw] of [[3, f.p3], [6, f.p6], [12, f.p12]] as const) {
+  for (const [months, raw] of [[1, f.p1], [3, f.p3], [6, f.p6], [12, f.p12]] as const) {
     if (raw.trim()) prices.push({ months, price: Number(raw) });
   }
   return {
@@ -152,7 +155,7 @@ export default function PlansPage() {
           <Thead>
             <Th>Mã</Th>
             <Th>Tên</Th>
-            <Th>Giá 3 / 6 / 12 tháng</Th>
+            <Th>Giá 1 / 3 / 6 / 12 tháng</Th>
             <Th>Số tài khoản</Th>
             <Th>Trạng thái</Th>
             <Th className="text-right">Thao tác</Th>
@@ -171,7 +174,7 @@ export default function PlansPage() {
                     )}
                   </Td>
                   <Td className="text-muted">
-                    {[3, 6, 12]
+                    {[1, 3, 6, 12]
                       .map((m) =>
                         price(m) !== undefined ? fmtVnd(price(m)!) : "—",
                       )
@@ -250,7 +253,15 @@ export default function PlansPage() {
                 }
               />
             </Field>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Field label="Giá 1 tháng (đ)">
+                <input
+                  className={inputCls}
+                  inputMode="numeric"
+                  value={form.p1}
+                  onChange={(e) => setForm({ ...form, p1: e.target.value })}
+                />
+              </Field>
               <Field label="Giá 3 tháng (đ)">
                 <input
                   className={inputCls}
