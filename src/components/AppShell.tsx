@@ -7,6 +7,7 @@ import { useApi } from "@/hooks/useApi";
 
 const NAV = [
   { label: "Tổng quan", href: "/" },
+  { label: "Yêu cầu dùng thử", href: "/leads" },
   { label: "Khách hàng", href: "/customers" },
   { label: "Gói cước", href: "/plans" },
   { label: "Gói mua thêm", href: "/addons" },
