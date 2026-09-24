@@ -1,0 +1,15 @@
+import type { NextRequest } from "next/server";
+import { beAsAdmin, withAdmin } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const body = await req.json().catch(() => ({}));
+  return withAdmin(req, (token) =>
+    beAsAdmin(token, `/subscriptions/${id}/add-seats`, { method: "POST", body }),
+  );
+}
