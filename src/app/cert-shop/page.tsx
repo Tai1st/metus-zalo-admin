@@ -72,6 +72,15 @@ type AppInfo =
 
 const fmtSize = (n: number) => (n / 1048576).toFixed(1) + " MB";
 
+type QuickApp = {
+  slug: string;
+  name: string;
+  version?: string;
+  bundleId?: string;
+  minOs?: string;
+  size?: number;
+};
+
 export default function CertShopPage() {
   const [status, setStatus] = useState("");
   const [q, setQ] = useState("");
@@ -80,6 +89,7 @@ export default function CertShopPage() {
 
   const stats = useApi<Stats>("/api/cert-shop/stats");
   const app = useApi<AppInfo>("/api/cert-shop/app");
+  const quickApps = useApi<QuickApp[]>("/api/cert-shop/quick-apps");
   const qs = new URLSearchParams({ page: String(page), pageSize: "20" });
   if (status) qs.set("status", status);
   if (q) qs.set("q", q);
@@ -137,6 +147,10 @@ export default function CertShopPage() {
 
       <div className="mb-5">
         <AppUpload app={app.data ?? null} onChanged={app.reload} />
+      </div>
+
+      <div className="mb-5">
+        <QuickApps items={quickApps.data ?? []} loading={quickApps.loading} onChanged={quickApps.reload} />
       </div>
 
       <Card className="p-4">
@@ -372,6 +386,130 @@ function AppUpload({ app, onChanged }: { app: AppInfo | null; onChanged: () => v
           {progress !== null ? "Đang tải lên…" : app?.available ? "Tải phiên bản mới (thay bản cũ)" : "Tải IPA lên"}
         </Button>
         <p className="text-xs text-muted sm:col-span-2">Tối đa {maxMb}MB. Bản cũ chỉ bị thay sau khi file mới hợp lệ.</p>
+      </form>
+    </Card>
+  );
+}
+
+function QuickApps({
+  items,
+  loading,
+  onChanged,
+}: {
+  items: QuickApp[];
+  loading: boolean;
+  onChanged: () => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [slug, setSlug] = useState("");
+  const [name, setName] = useState("");
+  const [progress, setProgress] = useState<number | null>(null);
+  const [msg, setMsg] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+
+  function upload(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const file = fileRef.current?.files?.[0];
+    setMsg("");
+    setError("");
+    const cleanSlug = slug.trim().toLowerCase();
+    if (!cleanSlug) return setError("Nhập slug (vd: esign)");
+    if (!/^[a-z0-9-]+$/.test(cleanSlug)) return setError("Slug chỉ gồm chữ thường, số và dấu gạch ngang");
+    if (!file) return setError("Chọn file .ipa để tải lên");
+    if (!/\.ipa$/i.test(file.name)) return setError("Chỉ nhận file .ipa");
+
+    const q = new URLSearchParams({ name: name.trim() || cleanSlug });
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `/api/cert-shop/quick-apps/${encodeURIComponent(cleanSlug)}?${q}`);
+    xhr.setRequestHeader("Content-Type", "application/octet-stream");
+    xhr.upload.onprogress = (ev) => ev.lengthComputable && setProgress(Math.round((ev.loaded / ev.total) * 100));
+    xhr.onload = () => {
+      setProgress(null);
+      let body: { ok?: boolean; error?: string } = {};
+      try {
+        body = JSON.parse(xhr.responseText);
+      } catch {
+        /* nginx/Cloudflare có thể trả trang chữ khi lỗi */
+      }
+      if (xhr.status >= 200 && xhr.status < 300 && body.ok) {
+        setMsg(`Đã thêm "${cleanSlug}"`);
+        setSlug("");
+        setName("");
+        if (fileRef.current) fileRef.current.value = "";
+        onChanged();
+      } else {
+        setError(body.error || (xhr.status === 413 ? "File vượt giới hạn server" : `Tải lên thất bại (${xhr.status})`));
+      }
+    };
+    xhr.onerror = () => {
+      setProgress(null);
+      setError("Mất kết nối khi đang tải lên, vui lòng thử lại");
+    };
+    setProgress(0);
+    xhr.send(file);
+  }
+
+  async function remove(a: QuickApp) {
+    if (!confirm(`Gỡ "${a.name}" (${a.slug}) khỏi danh sách ký nhanh?`)) return;
+    setBusy(a.slug);
+    try {
+      await apiSend(`/api/cert-shop/quick-apps/${a.slug}`, "DELETE");
+      onChanged();
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <Card className="space-y-3 p-4">
+      <div>
+        <h2 className="font-semibold">Kho ứng dụng (ký nhanh)</h2>
+        <p className="mt-0.5 text-xs text-muted">Các app như ESign khách có thể chọn để ký nhanh mà không cần tự tải IPA lên.</p>
+      </div>
+
+      {items.length > 0 ? (
+        <div className="space-y-2">
+          {items.map((a) => (
+            <div key={a.slug} className="flex items-center justify-between gap-3 rounded-lg bg-background p-3 text-xs">
+              <div className="min-w-0">
+                <div className="font-medium">
+                  {a.name} <span className="font-mono text-muted">({a.slug})</span>
+                </div>
+                <div className="truncate text-muted">
+                  {[a.version && `v${a.version}`, a.bundleId, a.minOs && `iOS ${a.minOs}+`, a.size && fmtSize(a.size)].filter(Boolean).join(" · ") || "—"}
+                </div>
+              </div>
+              <Button variant="danger" size="sm" disabled={busy === a.slug} onClick={() => remove(a)}>
+                Gỡ
+              </Button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-lg bg-background p-3 text-xs text-muted">{loading ? "Đang tải…" : "Chưa có app ký nhanh nào."}</p>
+      )}
+
+      <form onSubmit={upload} className="grid gap-2 border-t border-border pt-3 sm:grid-cols-2">
+        <input ref={fileRef} type="file" accept=".ipa" className="sm:col-span-2 h-9 w-full rounded-lg border border-border bg-surface px-3 text-sm" />
+        <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="Slug (vd: esign)" className="h-9 w-full rounded-lg border border-border bg-surface px-3 text-sm outline-none focus:border-brand" />
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Tên hiển thị" className="h-9 w-full rounded-lg border border-border bg-surface px-3 text-sm outline-none focus:border-brand" />
+
+        {progress !== null && (
+          <div className="sm:col-span-2">
+            <div className="h-2 overflow-hidden rounded-full bg-background">
+              <div className="h-full bg-brand transition-all" style={{ width: `${progress}%` }} />
+            </div>
+            <div className="mt-1 text-xs text-muted">Đang tải lên… {progress}%</div>
+          </div>
+        )}
+        {error && <p className="text-xs text-danger sm:col-span-2">{error}</p>}
+        {msg && <p className="text-xs text-success sm:col-span-2">{msg}</p>}
+        <Button disabled={progress !== null} className="sm:col-span-2">
+          {progress !== null ? "Đang tải lên…" : "Thêm app ký nhanh"}
+        </Button>
       </form>
     </Card>
   );
