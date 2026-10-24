@@ -9,6 +9,9 @@ export const maxDuration = 120;
 export async function POST(req: NextRequest) {
   const qs = req.nextUrl.search;
   const buf = await req.arrayBuffer();
+  console.log(
+    `[cert-shop/app/upload] content-length header=${req.headers.get("content-length")} buf.byteLength=${buf.byteLength}`,
+  );
   return withAdmin(req, (token) =>
     beAsAdminRaw(token, `/cert-shop/admin/app/upload${qs}`, buf),
   );
