@@ -23,6 +23,11 @@ server {
     listen 80;
     server_name cms-zalo.metus.vn;
 
+    # Trang Cert Shop (/cert-shop) cho admin tải lên app IPA tới 100MB — route handler
+    # của Next.js đọc cả body vào bộ nhớ trước khi chuyển tiếp lên BE, nên cần nới giới
+    # hạn mặc định 1MB của nginx, nếu không upload sẽ bị cắt với lỗi 413.
+    client_max_body_size 110M;
+
     location / {
         proxy_pass http://127.0.0.1:3001;
         proxy_http_version 1.1;

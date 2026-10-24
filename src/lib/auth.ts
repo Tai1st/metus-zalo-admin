@@ -114,6 +114,36 @@ export async function beAsAdmin<T>(
   return (await res.json()) as T;
 }
 
+/** Like beAsAdmin but sends a raw binary body (file upload), not JSON. */
+export async function beAsAdminRaw<T>(
+  token: string,
+  path: string,
+  body: ArrayBuffer,
+): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${backendUrl()}${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        Authorization: `Bearer ${token}`,
+      },
+      body,
+      cache: "no-store",
+    });
+  } catch {
+    throw new BeError("Không kết nối được máy chủ, vui lòng thử lại sau", 502);
+  }
+  if (!res.ok) {
+    const data = (await res.json().catch(() => null)) as
+      | { message?: string | string[] }
+      | null;
+    const msg = Array.isArray(data?.message) ? data.message[0] : data?.message;
+    throw new BeError(msg || `Lỗi máy chủ (${res.status})`, res.status);
+  }
+  return (await res.json()) as T;
+}
+
 export function fail(error: string, status: number) {
   return NextResponse.json({ ok: false, error }, { status });
 }
