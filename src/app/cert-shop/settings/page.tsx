@@ -17,6 +17,7 @@ type Settings = {
   hasApiKey: boolean;
   apiKeyHint: string;
   hasWebhookSecret: boolean;
+  hasWeb2mToken: boolean;
 };
 
 type Form = {
@@ -30,6 +31,7 @@ type Form = {
   chungchiBaseUrl: string;
   chungchiApiKey: string;
   webhookSecret: string;
+  web2mToken: string;
 };
 
 function toForm(s: Settings): Form {
@@ -44,6 +46,7 @@ function toForm(s: Settings): Form {
     chungchiBaseUrl: s.chungchiBaseUrl,
     chungchiApiKey: "",
     webhookSecret: "",
+    web2mToken: "",
   };
 }
 
@@ -78,6 +81,7 @@ export default function CertShopSettingsPage() {
           chungchiBaseUrl: form.chungchiBaseUrl.trim(),
           ...(form.chungchiApiKey.trim() && { chungchiApiKey: form.chungchiApiKey.trim() }),
           ...(form.webhookSecret.trim() && { webhookSecret: form.webhookSecret.trim() }),
+          ...(form.web2mToken.trim() && { web2mToken: form.web2mToken.trim() }),
         }),
       });
       const json = (await res.json()) as { ok: boolean; error?: string };
@@ -156,6 +160,17 @@ export default function CertShopSettingsPage() {
             </Field>
             <Field label={data?.hasWebhookSecret ? "Webhook secret (đã đặt, để trống để giữ nguyên)" : "Webhook secret (chưa đặt)"}>
               <input className={inputCls} type="password" autoComplete="off" placeholder="Nhập để thay đổi" value={form.webhookSecret} onChange={(e) => setForm({ ...form, webhookSecret: e.target.value })} />
+            </Field>
+          </Card>
+
+          <Card className="space-y-3 p-4">
+            <h2 className="font-semibold">Tự động xác nhận thanh toán (web2m.com)</h2>
+            <p className="text-xs text-muted">
+              Hệ thống kiểm tra lịch sử giao dịch ACB mỗi 30 giây, khớp đúng mã đơn (nội dung chuyển khoản) và số tiền để tự
+              chuyển đơn sang &quot;Đã thanh toán&quot; — không cần bấm thủ công.
+            </p>
+            <Field label={data?.hasWeb2mToken ? "Token web2m.com (đã đặt, để trống để giữ nguyên)" : "Token web2m.com (chưa đặt — chưa tự động xác nhận)"}>
+              <input className={inputCls} type="password" autoComplete="off" placeholder="Nhập để thay đổi" value={form.web2mToken} onChange={(e) => setForm({ ...form, web2mToken: e.target.value })} />
             </Field>
           </Card>
 
