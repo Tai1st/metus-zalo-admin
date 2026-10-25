@@ -79,6 +79,7 @@ type QuickApp = {
   bundleId?: string;
   minOs?: string;
   size?: number;
+  remote?: boolean;
 };
 
 export default function CertShopPage() {
@@ -501,6 +502,7 @@ function QuickApps({
               <div className="min-w-0">
                 <div className="font-medium">
                   {a.name} <span className="font-mono text-muted">({a.slug})</span>
+                  {a.remote && <Badge>remote</Badge>}
                 </div>
                 <div className="truncate text-muted">
                   {[a.version && `v${a.version}`, a.bundleId, a.minOs && `iOS ${a.minOs}+`, a.size && fmtSize(a.size)].filter(Boolean).join(" · ") || "—"}
@@ -550,22 +552,13 @@ type RepoApp = {
   size?: number | string;
 };
 
-function slugify(s: string) {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 32);
-}
-
 function RepoImport({ onChanged }: { onChanged: () => void }) {
   const [url, setUrl] = useState("");
   const [repoName, setRepoName] = useState("");
   const [apps, setApps] = useState<RepoApp[] | null>(null);
-  const [slugs, setSlugs] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
 
   async function preview(e: React.FormEvent) {
@@ -580,7 +573,6 @@ function RepoImport({ onChanged }: { onChanged: () => void }) {
       if (!json.ok || !json.data) throw new Error(json.error || `HTTP ${r.status}`);
       setRepoName(json.data.name);
       setApps(json.data.apps);
-      setSlugs(Object.fromEntries(json.data.apps.map((a) => [a.downloadURL, slugify(a.bundleIdentifier || a.name)])));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -588,20 +580,20 @@ function RepoImport({ onChanged }: { onChanged: () => void }) {
     }
   }
 
-  async function importApp(a: RepoApp) {
-    const slug = (slugs[a.downloadURL] || "").trim();
-    if (!slug) return setError("Nhập slug cho app này trước khi thêm");
-    setBusy(a.downloadURL);
+  async function importAll() {
+    setImporting(true);
     setError("");
     setMsg("");
     try {
-      await apiSend(`/api/cert-shop/quick-apps/${slug}/import`, "POST", { name: a.name, downloadURL: a.downloadURL });
-      setMsg(`Đã thêm "${a.name}" (${slug})`);
+      const r = await apiSend<{ added: number; total: number }>("/api/cert-shop/quick-apps/import-repo", "POST", {
+        url: url.trim(),
+      });
+      setMsg(`Đã thêm ${r.added}/${r.total} app từ repo.`);
       onChanged();
     } catch (e) {
       setError((e as Error).message);
     } finally {
-      setBusy(null);
+      setImporting(false);
     }
   }
 
@@ -609,8 +601,8 @@ function RepoImport({ onChanged }: { onChanged: () => void }) {
     <div className="space-y-3 border-t border-border pt-3">
       <h3 className="text-sm font-semibold">Nhập từ repo.json</h3>
       <p className="text-xs text-muted">
-        Dán link repo.json (định dạng AltStore/SideStore), xem danh sách app trong đó rồi chọn app hợp pháp cụ thể để thêm.
-        BE tự tải file, không qua trình duyệt của bạn.
+        Dán link repo.json (định dạng AltStore/SideStore) của app hợp pháp, xem trước danh sách rồi nhập cả repo cùng lúc.
+        Chỉ lưu tên/bundleId/link tải — BE không tải file IPA nào lúc này, chỉ tải khi có người thực sự chọn ký app đó.
       </p>
       <form onSubmit={preview} className="flex gap-2">
         <input
@@ -626,27 +618,28 @@ function RepoImport({ onChanged }: { onChanged: () => void }) {
 
       {apps && (
         <div className="space-y-2">
-          {repoName && <p className="text-xs text-muted">Repo: {repoName} · {apps.length} app</p>}
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs text-muted">
+              {repoName ? `Repo: ${repoName} · ` : ""}
+              {apps.length} app
+            </p>
+            {apps.length > 0 && (
+              <Button size="sm" disabled={importing} onClick={importAll}>
+                {importing ? "Đang nhập…" : `Thêm tất cả (${apps.length})`}
+              </Button>
+            )}
+          </div>
           {apps.length === 0 && <p className="text-xs text-muted">Repo không có app nào hợp lệ.</p>}
-          {apps.map((a) => (
-            <div key={a.downloadURL} className="flex flex-wrap items-center gap-2 rounded-lg bg-background p-3 text-xs">
-              <div className="min-w-0 flex-1">
+          <div className="max-h-64 space-y-1.5 overflow-y-auto">
+            {apps.map((a) => (
+              <div key={a.downloadURL} className="rounded-lg bg-background p-2.5 text-xs">
                 <div className="font-medium">{a.name}</div>
                 <div className="truncate text-muted">
                   {[a.version && `v${a.version}`, a.bundleIdentifier].filter(Boolean).join(" · ") || "—"}
                 </div>
               </div>
-              <input
-                value={slugs[a.downloadURL] ?? ""}
-                onChange={(e) => setSlugs({ ...slugs, [a.downloadURL]: e.target.value })}
-                placeholder="slug"
-                className="h-8 w-28 shrink-0 rounded-lg border border-border bg-surface px-2 text-xs outline-none focus:border-brand"
-              />
-              <Button size="sm" disabled={busy === a.downloadURL} onClick={() => importApp(a)}>
-                {busy === a.downloadURL ? "Đang thêm…" : "Thêm"}
-              </Button>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>
