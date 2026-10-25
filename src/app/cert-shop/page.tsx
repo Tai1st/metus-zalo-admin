@@ -80,6 +80,7 @@ type QuickApp = {
   minOs?: string;
   size?: number;
   remote?: boolean;
+  iconURL?: string;
 };
 
 export default function CertShopPage() {
@@ -499,13 +500,23 @@ function QuickApps({
         <div className="space-y-2">
           {items.map((a) => (
             <div key={a.slug} className="flex items-center justify-between gap-3 rounded-lg bg-background p-3 text-xs">
-              <div className="min-w-0">
-                <div className="font-medium">
-                  {a.name} <span className="font-mono text-muted">({a.slug})</span>
-                  {a.remote && <Badge>remote</Badge>}
-                </div>
-                <div className="truncate text-muted">
-                  {[a.version && `v${a.version}`, a.bundleId, a.minOs && `iOS ${a.minOs}+`, a.size && fmtSize(a.size)].filter(Boolean).join(" · ") || "—"}
+              <div className="flex min-w-0 items-center gap-2.5">
+                {a.iconURL ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={a.iconURL} alt="" className="h-8 w-8 shrink-0 rounded-lg object-cover" />
+                ) : (
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-border text-xs font-bold text-muted">
+                    {a.name.slice(0, 1).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="font-medium">
+                    {a.name} <span className="font-mono text-muted">({a.slug})</span>
+                    {a.remote && <Badge>remote</Badge>}
+                  </div>
+                  <div className="truncate text-muted">
+                    {[a.version && `v${a.version}`, a.bundleId, a.minOs && `iOS ${a.minOs}+`, a.size && fmtSize(a.size)].filter(Boolean).join(" · ") || "—"}
+                  </div>
                 </div>
               </div>
               <Button variant="danger" size="sm" disabled={busy === a.slug} onClick={() => remove(a)}>
