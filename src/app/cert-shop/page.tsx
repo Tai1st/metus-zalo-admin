@@ -109,6 +109,20 @@ export default function CertShopPage() {
     }
   }
 
+  async function remove(code: string) {
+    if (!confirm(`Xóa vĩnh viễn đơn ${code}? Không thể hoàn tác.`)) return;
+    setBusy(code);
+    try {
+      await apiSend(`/api/cert-shop/orders/${code}`, "DELETE");
+      orders.reload();
+      stats.reload();
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
   const items = orders.data?.items ?? [];
   const total = orders.data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / 20));
@@ -243,6 +257,11 @@ export default function CertShopPage() {
                     {o.status === "provisioning" && (
                       <Button size="sm" disabled={busy === o.code} onClick={() => act(o.code, "sync")}>
                         Đồng bộ
+                      </Button>
+                    )}
+                    {(o.status === "awaiting_payment" || o.status === "cancelled" || o.status === "failed") && (
+                      <Button variant="danger" size="sm" disabled={busy === o.code} onClick={() => remove(o.code)}>
+                        Xóa
                       </Button>
                     )}
                   </div>
