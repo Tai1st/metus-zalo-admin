@@ -535,6 +535,120 @@ function QuickApps({
           {progress !== null ? "Đang tải lên…" : "Thêm app ký nhanh"}
         </Button>
       </form>
+
+      <RepoImport onChanged={onChanged} />
     </Card>
+  );
+}
+
+type RepoApp = {
+  name: string;
+  bundleIdentifier: string;
+  version: string;
+  iconURL?: string;
+  downloadURL: string;
+  size?: number | string;
+};
+
+function slugify(s: string) {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32);
+}
+
+function RepoImport({ onChanged }: { onChanged: () => void }) {
+  const [url, setUrl] = useState("");
+  const [repoName, setRepoName] = useState("");
+  const [apps, setApps] = useState<RepoApp[] | null>(null);
+  const [slugs, setSlugs] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState("");
+
+  async function preview(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setMsg("");
+    setApps(null);
+    try {
+      const r = await fetch(`/api/cert-shop/quick-apps/preview?url=${encodeURIComponent(url.trim())}`);
+      const json = (await r.json()) as { ok: boolean; data?: { name: string; apps: RepoApp[] }; error?: string };
+      if (!json.ok || !json.data) throw new Error(json.error || `HTTP ${r.status}`);
+      setRepoName(json.data.name);
+      setApps(json.data.apps);
+      setSlugs(Object.fromEntries(json.data.apps.map((a) => [a.downloadURL, slugify(a.bundleIdentifier || a.name)])));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function importApp(a: RepoApp) {
+    const slug = (slugs[a.downloadURL] || "").trim();
+    if (!slug) return setError("Nhập slug cho app này trước khi thêm");
+    setBusy(a.downloadURL);
+    setError("");
+    setMsg("");
+    try {
+      await apiSend(`/api/cert-shop/quick-apps/${slug}/import`, "POST", { name: a.name, downloadURL: a.downloadURL });
+      setMsg(`Đã thêm "${a.name}" (${slug})`);
+      onChanged();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="space-y-3 border-t border-border pt-3">
+      <h3 className="text-sm font-semibold">Nhập từ repo.json</h3>
+      <p className="text-xs text-muted">
+        Dán link repo.json (định dạng AltStore/SideStore), xem danh sách app trong đó rồi chọn app hợp pháp cụ thể để thêm.
+        BE tự tải file, không qua trình duyệt của bạn.
+      </p>
+      <form onSubmit={preview} className="flex gap-2">
+        <input
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://.../repo.json"
+          className="h-9 flex-1 rounded-lg border border-border bg-surface px-3 text-sm outline-none focus:border-brand"
+        />
+        <Button disabled={loading || !url.trim()}>{loading ? "Đang tải…" : "Xem repo"}</Button>
+      </form>
+      {error && <p className="text-xs text-danger">{error}</p>}
+      {msg && <p className="text-xs text-success">{msg}</p>}
+
+      {apps && (
+        <div className="space-y-2">
+          {repoName && <p className="text-xs text-muted">Repo: {repoName} · {apps.length} app</p>}
+          {apps.length === 0 && <p className="text-xs text-muted">Repo không có app nào hợp lệ.</p>}
+          {apps.map((a) => (
+            <div key={a.downloadURL} className="flex flex-wrap items-center gap-2 rounded-lg bg-background p-3 text-xs">
+              <div className="min-w-0 flex-1">
+                <div className="font-medium">{a.name}</div>
+                <div className="truncate text-muted">
+                  {[a.version && `v${a.version}`, a.bundleIdentifier].filter(Boolean).join(" · ") || "—"}
+                </div>
+              </div>
+              <input
+                value={slugs[a.downloadURL] ?? ""}
+                onChange={(e) => setSlugs({ ...slugs, [a.downloadURL]: e.target.value })}
+                placeholder="slug"
+                className="h-8 w-28 shrink-0 rounded-lg border border-border bg-surface px-2 text-xs outline-none focus:border-brand"
+              />
+              <Button size="sm" disabled={busy === a.downloadURL} onClick={() => importApp(a)}>
+                {busy === a.downloadURL ? "Đang thêm…" : "Thêm"}
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

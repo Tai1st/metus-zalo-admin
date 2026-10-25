@@ -1,0 +1,11 @@
+import type { NextRequest } from "next/server";
+import { beAsAdmin, withAdmin } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
+
+export function GET(req: NextRequest) {
+  const url = req.nextUrl.searchParams.get("url") ?? "";
+  return withAdmin(req, (token) =>
+    beAsAdmin(token, `/cert-shop/admin/quick-apps/preview?url=${encodeURIComponent(url)}`),
+  );
+}
