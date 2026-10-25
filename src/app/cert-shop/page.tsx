@@ -96,7 +96,7 @@ export default function CertShopPage() {
   const orders = useApi<OrdersPage>(`/api/cert-shop/orders?${qs}`);
   const [busy, setBusy] = useState<string | null>(null);
 
-  async function act(code: string, action: "confirm" | "cancel") {
+  async function act(code: string, action: "confirm" | "cancel" | "sync") {
     setBusy(code);
     try {
       await apiSend(`/api/cert-shop/orders/${code}/${action}`, "POST");
@@ -238,6 +238,11 @@ export default function CertShopPage() {
                     {o.status === "paid" && (
                       <Button size="sm" disabled={busy === o.code} onClick={() => act(o.code, "confirm")}>
                         Gửi lại đơn
+                      </Button>
+                    )}
+                    {o.status === "provisioning" && (
+                      <Button size="sm" disabled={busy === o.code} onClick={() => act(o.code, "sync")}>
+                        Đồng bộ
                       </Button>
                     )}
                   </div>
