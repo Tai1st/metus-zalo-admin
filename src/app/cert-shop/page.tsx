@@ -53,6 +53,7 @@ type Order = {
   price: number;
   status: string;
   error?: string;
+  providerOrderCode?: string;
   providerAttempts?: number;
   createdAt: string;
 };
@@ -103,6 +104,25 @@ export default function CertShopPage() {
     setBusy(code);
     try {
       await apiSend(`/api/cert-shop/orders/${code}/${action}`, "POST");
+      orders.reload();
+      stats.reload();
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function linkProvider(code: string) {
+    const providerOrderCode = prompt(
+      `Dán order_code đọc được trên dashboard chungchi.store cho đơn ${code} (hệ thống sẽ tự kiểm tra đúng UDID trước khi gắn):`,
+    );
+    if (!providerOrderCode?.trim()) return;
+    setBusy(code);
+    try {
+      await apiSend(`/api/cert-shop/orders/${code}/link-provider`, "POST", {
+        providerOrderCode: providerOrderCode.trim(),
+      });
       orders.reload();
       stats.reload();
     } catch (e) {
@@ -229,7 +249,10 @@ export default function CertShopPage() {
           <tbody>
             {items.map((o) => (
               <Tr key={o.code}>
-                <Td className="font-mono text-xs">{o.code}</Td>
+                <Td className="font-mono text-xs">
+                  {o.code}
+                  {o.providerOrderCode && <div className="text-muted">NCC: {o.providerOrderCode}</div>}
+                </Td>
                 <Td>
                   <div>{o.username}</div>
                   <div className="font-mono text-xs text-muted">{o.udid}</div>
@@ -268,6 +291,11 @@ export default function CertShopPage() {
                         }}
                       >
                         Gửi lại đơn{(o.providerAttempts ?? 0) >= 1 ? ` (lần ${(o.providerAttempts ?? 0) + 1})` : ""}
+                      </Button>
+                    )}
+                    {o.status === "paid" && !o.providerOrderCode && (
+                      <Button variant="ghost" size="sm" disabled={busy === o.code} onClick={() => linkProvider(o.code)}>
+                        Gắn mã NCC
                       </Button>
                     )}
                     {o.status === "provisioning" && (
