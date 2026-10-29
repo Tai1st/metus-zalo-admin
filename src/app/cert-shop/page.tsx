@@ -53,6 +53,7 @@ type Order = {
   price: number;
   status: string;
   error?: string;
+  providerAttempts?: number;
   createdAt: string;
 };
 
@@ -252,8 +253,21 @@ export default function CertShopPage() {
                       </>
                     )}
                     {o.status === "paid" && (
-                      <Button size="sm" disabled={busy === o.code} onClick={() => act(o.code, "confirm")}>
-                        Gửi lại đơn
+                      <Button
+                        size="sm"
+                        disabled={busy === o.code}
+                        onClick={() => {
+                          if (
+                            (o.providerAttempts ?? 0) >= 1 &&
+                            !confirm(
+                              `Đơn ${o.code} đã từng gửi sang nhà cung cấp ${o.providerAttempts} lần trước đó và lỗi. Nhà cung cấp không hỗ trợ chống trùng — nếu lần trước thực ra đã thành công bên họ (chỉ là mất phản hồi), gửi lại sẽ tạo đơn thật thứ 2, bị trừ ví 2 lần.\n\nHãy kiểm tra ví/lịch sử đơn bên chungchi.store trước. Vẫn muốn gửi lại?`,
+                            )
+                          )
+                            return;
+                          act(o.code, "confirm");
+                        }}
+                      >
+                        Gửi lại đơn{(o.providerAttempts ?? 0) >= 1 ? ` (lần ${(o.providerAttempts ?? 0) + 1})` : ""}
                       </Button>
                     )}
                     {o.status === "provisioning" && (
