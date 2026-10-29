@@ -5,6 +5,22 @@ import { useEffect, useState } from "react";
 import { useApi } from "@/hooks/useApi";
 import { Button, Card, Field, inputCls, Notice, PageHeader } from "@/components/ui";
 
+type UsdtNetworkConfig = {
+  key: string;
+  label: string;
+  binanceNetwork: string;
+  address: string;
+  feeMicro: number;
+  enabled: boolean;
+};
+
+type BinanceNetworkInfo = {
+  network: string;
+  name: string;
+  depositEnable: boolean;
+  depositDesc?: string;
+};
+
 type Settings = {
   siteUrl: string;
   bankId: string;
@@ -20,11 +36,19 @@ type Settings = {
   hasWeb2mToken: boolean;
   hasBinanceKey: boolean;
   hasBinanceSecret: boolean;
-  binanceBepAddress: string;
-  depositServiceFeeMicro: number;
+  usdtNetworks: UsdtNetworkConfig[];
   depositMinMicro: number;
   depositMaxMicro: number;
   usdtVndRate: number;
+};
+
+type NetworkForm = {
+  key: string;
+  label: string;
+  binanceNetwork: string;
+  address: string;
+  feeUsdt: string;
+  enabled: boolean;
 };
 
 type Form = {
@@ -41,8 +65,7 @@ type Form = {
   web2mToken: string;
   binanceApiKey: string;
   binanceApiSecret: string;
-  binanceBepAddress: string;
-  depositServiceFeeUsdt: string;
+  usdtNetworks: NetworkForm[];
   depositMinUsdt: string;
   depositMaxUsdt: string;
   usdtVndRate: string;
@@ -63,8 +86,14 @@ function toForm(s: Settings): Form {
     web2mToken: "",
     binanceApiKey: "",
     binanceApiSecret: "",
-    binanceBepAddress: s.binanceBepAddress,
-    depositServiceFeeUsdt: String(s.depositServiceFeeMicro / 1e6),
+    usdtNetworks: s.usdtNetworks.map((n) => ({
+      key: n.key,
+      label: n.label,
+      binanceNetwork: n.binanceNetwork,
+      address: n.address,
+      feeUsdt: String(n.feeMicro / 1e6),
+      enabled: n.enabled,
+    })),
     depositMinUsdt: String(s.depositMinMicro / 1e6),
     depositMaxUsdt: String(s.depositMaxMicro / 1e6),
     usdtVndRate: String(s.usdtVndRate),
@@ -80,10 +109,36 @@ export default function CertShopSettingsPage() {
   const [registering, setRegistering] = useState(false);
   const [registerMsg, setRegisterMsg] = useState("");
   const [registerError, setRegisterError] = useState("");
+  const [binanceNetworks, setBinanceNetworks] = useState<BinanceNetworkInfo[] | null>(null);
+  const [loadingNetworks, setLoadingNetworks] = useState(false);
+  const [networksError, setNetworksError] = useState("");
 
   useEffect(() => {
     if (data) setForm(toForm(data));
   }, [data]);
+
+  async function loadBinanceNetworks() {
+    setLoadingNetworks(true);
+    setNetworksError("");
+    try {
+      const res = await fetch("/api/cert-shop/binance/usdt-networks");
+      const json = (await res.json()) as { ok: boolean; data?: BinanceNetworkInfo[]; error?: string };
+      if (!json.ok) throw new Error(json.error || `HTTP ${res.status}`);
+      setBinanceNetworks(json.data ?? []);
+    } catch (e) {
+      setNetworksError((e as Error).message);
+    } finally {
+      setLoadingNetworks(false);
+    }
+  }
+
+  function updateNetwork(key: string, patch: Partial<NetworkForm>) {
+    if (!form) return;
+    setForm({
+      ...form,
+      usdtNetworks: form.usdtNetworks.map((n) => (n.key === key ? { ...n, ...patch } : n)),
+    });
+  }
 
   async function save() {
     if (!form) return;
@@ -108,8 +163,14 @@ export default function CertShopSettingsPage() {
           ...(form.web2mToken.trim() && { web2mToken: form.web2mToken.trim() }),
           ...(form.binanceApiKey.trim() && { binanceApiKey: form.binanceApiKey.trim() }),
           ...(form.binanceApiSecret.trim() && { binanceApiSecret: form.binanceApiSecret.trim() }),
-          binanceBepAddress: form.binanceBepAddress.trim(),
-          depositServiceFeeMicro: Math.round(Number(form.depositServiceFeeUsdt) * 1e6),
+          usdtNetworks: form.usdtNetworks.map((n) => ({
+            key: n.key,
+            label: n.label,
+            binanceNetwork: n.binanceNetwork.trim(),
+            address: n.address.trim(),
+            feeMicro: Math.round(Number(n.feeUsdt) * 1e6),
+            enabled: n.enabled,
+          })),
           depositMinMicro: Math.round(Number(form.depositMinUsdt) * 1e6),
           depositMaxMicro: Math.round(Number(form.depositMaxUsdt) * 1e6),
           usdtVndRate: Number(form.usdtVndRate),
@@ -234,10 +295,11 @@ export default function CertShopSettingsPage() {
           </Card>
 
           <Card className="space-y-3 p-4">
-            <h2 className="font-semibold">Nạp USDT qua Binance (BEP20)</h2>
+            <h2 className="font-semibold">Nạp USDT qua Binance (nhiều mạng)</h2>
             <p className="text-xs text-muted">
-              MVP chỉ hỗ trợ mạng BEP20/BSC. API key chỉ cần quyền đọc (capital/deposit) — không bật
-              trade/withdraw/transfer. Địa chỉ nhận phải tự xác minh khớp với màn hình nạp Binance thật trước khi dán vào đây.
+              API key chỉ cần quyền đọc (capital/deposit) — không bật trade/withdraw/transfer. Chỉ bật một mạng sau khi đã
+              xác minh đúng <b>mã mạng Binance</b> và <b>địa chỉ nhận</b> khớp với màn hình nạp Binance thật — không đoán mã
+              từ tên hiển thị. Dùng nút bên dưới để xem đúng mã Binance đang hỗ trợ trên tài khoản.
             </p>
             <Field label={data?.hasBinanceKey ? "API Key (đã đặt, để trống để giữ nguyên)" : "API Key (chưa đặt)"}>
               <input className={inputCls} type="password" autoComplete="off" placeholder="Nhập để thay đổi" value={form.binanceApiKey} onChange={(e) => setForm({ ...form, binanceApiKey: e.target.value })} />
@@ -245,13 +307,67 @@ export default function CertShopSettingsPage() {
             <Field label={data?.hasBinanceSecret ? "API Secret (đã đặt, để trống để giữ nguyên)" : "API Secret (chưa đặt)"}>
               <input className={inputCls} type="password" autoComplete="off" placeholder="Nhập để thay đổi" value={form.binanceApiSecret} onChange={(e) => setForm({ ...form, binanceApiSecret: e.target.value })} />
             </Field>
-            <Field label="Địa chỉ nhận BEP20 (đã xác minh thủ công)">
-              <input className={`${inputCls} font-mono`} placeholder="0x..." value={form.binanceBepAddress} onChange={(e) => setForm({ ...form, binanceBepAddress: e.target.value })} />
-            </Field>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-              <Field label="Phí dịch vụ (USDT)">
-                <input className={inputCls} inputMode="decimal" value={form.depositServiceFeeUsdt} onChange={(e) => setForm({ ...form, depositServiceFeeUsdt: e.target.value })} />
-              </Field>
+
+            <div>
+              <Button type="button" variant="ghost" disabled={loadingNetworks} onClick={loadBinanceNetworks}>
+                {loadingNetworks ? "Đang tải…" : "Xem mạng Binance thực sự hỗ trợ"}
+              </Button>
+              {networksError && <p className="mt-1.5 text-xs text-danger">{networksError}</p>}
+              {binanceNetworks && (
+                <div className="mt-2 overflow-x-auto rounded-lg border border-border">
+                  <table className="w-full text-xs">
+                    <thead className="bg-background text-muted">
+                      <tr>
+                        <th className="px-2.5 py-1.5 text-left">Mã mạng (network)</th>
+                        <th className="px-2.5 py-1.5 text-left">Tên</th>
+                        <th className="px-2.5 py-1.5 text-left">Nạp được</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {binanceNetworks.map((n) => (
+                        <tr key={n.network} className="border-t border-border">
+                          <td className="px-2.5 py-1.5 font-mono">{n.network}</td>
+                          <td className="px-2.5 py-1.5">{n.name}</td>
+                          <td className="px-2.5 py-1.5">{n.depositEnable ? "Có" : "Không"}</td>
+                        </tr>
+                      ))}
+                      {!binanceNetworks.length && (
+                        <tr>
+                          <td colSpan={3} className="px-2.5 py-2 text-center text-muted">Không có dữ liệu</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2.5">
+              {form.usdtNetworks.map((n) => (
+                <div key={n.key} className="rounded-lg border border-border p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-sm font-semibold">{n.label}</span>
+                    <label className="flex items-center gap-1.5 text-xs">
+                      <input type="checkbox" checked={n.enabled} onChange={(e) => updateNetwork(n.key, { enabled: e.target.checked })} />
+                      Bật mạng này
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-4">
+                    <Field label="Mã mạng Binance (vd BSC, TRX)">
+                      <input className={`${inputCls} font-mono`} value={n.binanceNetwork} onChange={(e) => updateNetwork(n.key, { binanceNetwork: e.target.value })} />
+                    </Field>
+                    <Field label="Địa chỉ nhận (đã xác minh thủ công)">
+                      <input className={`${inputCls} font-mono`} value={n.address} onChange={(e) => updateNetwork(n.key, { address: e.target.value })} />
+                    </Field>
+                    <Field label="Phí dịch vụ (USDT)">
+                      <input className={inputCls} inputMode="decimal" value={n.feeUsdt} onChange={(e) => updateNetwork(n.key, { feeUsdt: e.target.value })} />
+                    </Field>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Field label="Tối thiểu (USDT)">
                 <input className={inputCls} inputMode="decimal" value={form.depositMinUsdt} onChange={(e) => setForm({ ...form, depositMinUsdt: e.target.value })} />
               </Field>
