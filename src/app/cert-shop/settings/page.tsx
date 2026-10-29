@@ -56,6 +56,9 @@ export default function CertShopSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [registering, setRegistering] = useState(false);
+  const [registerMsg, setRegisterMsg] = useState("");
+  const [registerError, setRegisterError] = useState("");
 
   useEffect(() => {
     if (data) setForm(toForm(data));
@@ -92,6 +95,23 @@ export default function CertShopSettingsPage() {
       setSaveError((e as Error).message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function registerWebhook() {
+    setRegistering(true);
+    setRegisterError("");
+    setRegisterMsg("");
+    try {
+      const res = await fetch("/api/cert-shop/webhook/register", { method: "POST" });
+      const json = (await res.json()) as { ok: boolean; data?: { url: string }; error?: string };
+      if (!json.ok) throw new Error(json.error || `HTTP ${res.status}`);
+      setRegisterMsg(`Đã đăng ký: ${json.data?.url}`);
+      reload();
+    } catch (e) {
+      setRegisterError((e as Error).message);
+    } finally {
+      setRegistering(false);
     }
   }
 
@@ -161,6 +181,17 @@ export default function CertShopSettingsPage() {
             <Field label={data?.hasWebhookSecret ? "Webhook secret (đã đặt, để trống để giữ nguyên)" : "Webhook secret (chưa đặt)"}>
               <input className={inputCls} type="password" autoComplete="off" placeholder="Nhập để thay đổi" value={form.webhookSecret} onChange={(e) => setForm({ ...form, webhookSecret: e.target.value })} />
             </Field>
+            <div>
+              <Button type="button" variant="ghost" disabled={registering} onClick={registerWebhook}>
+                {registering ? "Đang đăng ký…" : "Đăng ký webhook tự động"}
+              </Button>
+              <p className="mt-1.5 text-xs text-muted">
+                Gọi thẳng chungchi.store để đăng ký URL webhook bằng địa chỉ shop ở dưới và tự lưu secret họ trả về — secret
+                chỉ hiện đúng một lần nên không nhập tay được, phải dùng nút này.
+              </p>
+              {registerMsg && <p className="mt-1.5 text-xs text-success">{registerMsg}</p>}
+              {registerError && <p className="mt-1.5 text-xs text-danger">{registerError}</p>}
+            </div>
           </Card>
 
           <Card className="space-y-3 p-4">
