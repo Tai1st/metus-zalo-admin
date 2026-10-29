@@ -18,6 +18,13 @@ type Settings = {
   apiKeyHint: string;
   hasWebhookSecret: boolean;
   hasWeb2mToken: boolean;
+  hasBinanceKey: boolean;
+  hasBinanceSecret: boolean;
+  binanceBepAddress: string;
+  depositServiceFeeMicro: number;
+  depositMinMicro: number;
+  depositMaxMicro: number;
+  usdtVndRate: number;
 };
 
 type Form = {
@@ -32,6 +39,13 @@ type Form = {
   chungchiApiKey: string;
   webhookSecret: string;
   web2mToken: string;
+  binanceApiKey: string;
+  binanceApiSecret: string;
+  binanceBepAddress: string;
+  depositServiceFeeUsdt: string;
+  depositMinUsdt: string;
+  depositMaxUsdt: string;
+  usdtVndRate: string;
 };
 
 function toForm(s: Settings): Form {
@@ -47,6 +61,13 @@ function toForm(s: Settings): Form {
     chungchiApiKey: "",
     webhookSecret: "",
     web2mToken: "",
+    binanceApiKey: "",
+    binanceApiSecret: "",
+    binanceBepAddress: s.binanceBepAddress,
+    depositServiceFeeUsdt: String(s.depositServiceFeeMicro / 1e6),
+    depositMinUsdt: String(s.depositMinMicro / 1e6),
+    depositMaxUsdt: String(s.depositMaxMicro / 1e6),
+    usdtVndRate: String(s.usdtVndRate),
   };
 }
 
@@ -85,6 +106,13 @@ export default function CertShopSettingsPage() {
           ...(form.chungchiApiKey.trim() && { chungchiApiKey: form.chungchiApiKey.trim() }),
           ...(form.webhookSecret.trim() && { webhookSecret: form.webhookSecret.trim() }),
           ...(form.web2mToken.trim() && { web2mToken: form.web2mToken.trim() }),
+          ...(form.binanceApiKey.trim() && { binanceApiKey: form.binanceApiKey.trim() }),
+          ...(form.binanceApiSecret.trim() && { binanceApiSecret: form.binanceApiSecret.trim() }),
+          binanceBepAddress: form.binanceBepAddress.trim(),
+          depositServiceFeeMicro: Math.round(Number(form.depositServiceFeeUsdt) * 1e6),
+          depositMinMicro: Math.round(Number(form.depositMinUsdt) * 1e6),
+          depositMaxMicro: Math.round(Number(form.depositMaxUsdt) * 1e6),
+          usdtVndRate: Number(form.usdtVndRate),
         }),
       });
       const json = (await res.json()) as { ok: boolean; error?: string };
@@ -203,6 +231,37 @@ export default function CertShopSettingsPage() {
             <Field label={data?.hasWeb2mToken ? "Token web2m.com (đã đặt, để trống để giữ nguyên)" : "Token web2m.com (chưa đặt — chưa tự động xác nhận)"}>
               <input className={inputCls} type="password" autoComplete="off" placeholder="Nhập để thay đổi" value={form.web2mToken} onChange={(e) => setForm({ ...form, web2mToken: e.target.value })} />
             </Field>
+          </Card>
+
+          <Card className="space-y-3 p-4">
+            <h2 className="font-semibold">Nạp USDT qua Binance (BEP20)</h2>
+            <p className="text-xs text-muted">
+              MVP chỉ hỗ trợ mạng BEP20/BSC. API key chỉ cần quyền đọc (capital/deposit) — không bật
+              trade/withdraw/transfer. Địa chỉ nhận phải tự xác minh khớp với màn hình nạp Binance thật trước khi dán vào đây.
+            </p>
+            <Field label={data?.hasBinanceKey ? "API Key (đã đặt, để trống để giữ nguyên)" : "API Key (chưa đặt)"}>
+              <input className={inputCls} type="password" autoComplete="off" placeholder="Nhập để thay đổi" value={form.binanceApiKey} onChange={(e) => setForm({ ...form, binanceApiKey: e.target.value })} />
+            </Field>
+            <Field label={data?.hasBinanceSecret ? "API Secret (đã đặt, để trống để giữ nguyên)" : "API Secret (chưa đặt)"}>
+              <input className={inputCls} type="password" autoComplete="off" placeholder="Nhập để thay đổi" value={form.binanceApiSecret} onChange={(e) => setForm({ ...form, binanceApiSecret: e.target.value })} />
+            </Field>
+            <Field label="Địa chỉ nhận BEP20 (đã xác minh thủ công)">
+              <input className={`${inputCls} font-mono`} placeholder="0x..." value={form.binanceBepAddress} onChange={(e) => setForm({ ...form, binanceBepAddress: e.target.value })} />
+            </Field>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+              <Field label="Phí dịch vụ (USDT)">
+                <input className={inputCls} inputMode="decimal" value={form.depositServiceFeeUsdt} onChange={(e) => setForm({ ...form, depositServiceFeeUsdt: e.target.value })} />
+              </Field>
+              <Field label="Tối thiểu (USDT)">
+                <input className={inputCls} inputMode="decimal" value={form.depositMinUsdt} onChange={(e) => setForm({ ...form, depositMinUsdt: e.target.value })} />
+              </Field>
+              <Field label="Tối đa (USDT)">
+                <input className={inputCls} inputMode="decimal" value={form.depositMaxUsdt} onChange={(e) => setForm({ ...form, depositMaxUsdt: e.target.value })} />
+              </Field>
+              <Field label="Tỷ giá 1 USDT = ? VND">
+                <input className={inputCls} inputMode="numeric" value={form.usdtVndRate} onChange={(e) => setForm({ ...form, usdtVndRate: e.target.value })} />
+              </Field>
+            </div>
           </Card>
 
           <Card className="space-y-3 p-4">
