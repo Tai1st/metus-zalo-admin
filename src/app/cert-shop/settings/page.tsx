@@ -115,6 +115,8 @@ export default function CertShopSettingsPage() {
   const [binanceNetworks, setBinanceNetworks] = useState<BinanceNetworkInfo[] | null>(null);
   const [loadingNetworks, setLoadingNetworks] = useState(false);
   const [networksError, setNetworksError] = useState("");
+  const [fetchingAddress, setFetchingAddress] = useState<string | null>(null);
+  const [addressError, setAddressError] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (data) setForm(toForm(data));
@@ -141,6 +143,25 @@ export default function CertShopSettingsPage() {
       ...form,
       usdtNetworks: form.usdtNetworks.map((n) => (n.key === key ? { ...n, ...patch } : n)),
     });
+  }
+
+  async function fetchDepositAddress(n: NetworkForm) {
+    if (!n.binanceNetwork.trim()) {
+      setAddressError((e) => ({ ...e, [n.key]: "Điền Mã mạng Binance trước" }));
+      return;
+    }
+    setFetchingAddress(n.key);
+    setAddressError((e) => ({ ...e, [n.key]: "" }));
+    try {
+      const res = await fetch(`/api/cert-shop/binance/deposit-address?network=${encodeURIComponent(n.binanceNetwork.trim())}`);
+      const json = (await res.json()) as { ok: boolean; data?: { address: string }; error?: string };
+      if (!json.ok || !json.data?.address) throw new Error(json.error || "Không lấy được địa chỉ");
+      updateNetwork(n.key, { address: json.data.address });
+    } catch (e) {
+      setAddressError((err) => ({ ...err, [n.key]: (e as Error).message }));
+    } finally {
+      setFetchingAddress(null);
+    }
   }
 
   async function save() {
@@ -372,8 +393,20 @@ export default function CertShopSettingsPage() {
                     <Field label="Mã mạng Binance (vd BSC, TRX)">
                       <input className={`${inputCls} font-mono`} value={n.binanceNetwork} onChange={(e) => updateNetwork(n.key, { binanceNetwork: e.target.value })} />
                     </Field>
-                    <Field label="Địa chỉ nhận (đã xác minh thủ công)">
-                      <input className={`${inputCls} font-mono`} value={n.address} onChange={(e) => updateNetwork(n.key, { address: e.target.value })} />
+                    <Field label="Địa chỉ nhận">
+                      <div className="flex gap-1.5">
+                        <input className={`${inputCls} font-mono`} value={n.address} onChange={(e) => updateNetwork(n.key, { address: e.target.value })} />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={fetchingAddress === n.key}
+                          onClick={() => fetchDepositAddress(n)}
+                        >
+                          {fetchingAddress === n.key ? "..." : "Lấy tự động"}
+                        </Button>
+                      </div>
+                      {addressError[n.key] && <p className="mt-1 text-xs text-danger">{addressError[n.key]}</p>}
                     </Field>
                     <Field label="Phí dịch vụ (USDT)">
                       <input className={inputCls} inputMode="decimal" value={n.feeUsdt} onChange={(e) => updateNetwork(n.key, { feeUsdt: e.target.value })} />
