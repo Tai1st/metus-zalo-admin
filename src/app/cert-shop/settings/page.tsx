@@ -40,6 +40,7 @@ type Settings = {
   depositMinMicro: number;
   depositMaxMicro: number;
   usdtVndRate: number;
+  paypalEmail: string;
 };
 
 type NetworkForm = {
@@ -69,6 +70,7 @@ type Form = {
   depositMinUsdt: string;
   depositMaxUsdt: string;
   usdtVndRate: string;
+  paypalEmail: string;
 };
 
 function toForm(s: Settings): Form {
@@ -97,6 +99,7 @@ function toForm(s: Settings): Form {
     depositMinUsdt: String(s.depositMinMicro / 1e6),
     depositMaxUsdt: String(s.depositMaxMicro / 1e6),
     usdtVndRate: String(s.usdtVndRate),
+    paypalEmail: s.paypalEmail,
   };
 }
 
@@ -174,6 +177,7 @@ export default function CertShopSettingsPage() {
           depositMinMicro: Math.round(Number(form.depositMinUsdt) * 1e6),
           depositMaxMicro: Math.round(Number(form.depositMaxUsdt) * 1e6),
           usdtVndRate: Number(form.usdtVndRate),
+          paypalEmail: form.paypalEmail.trim(),
         }),
       });
       const json = (await res.json()) as { ok: boolean; error?: string };
@@ -234,6 +238,18 @@ export default function CertShopSettingsPage() {
                 <input className={inputCls} value={form.bankAccountName} onChange={(e) => setForm({ ...form, bankAccountName: e.target.value })} />
               </Field>
             </div>
+          </Card>
+
+          <Card className="space-y-3 p-4">
+            <h2 className="font-semibold">Thanh toán PayPal (thủ công)</h2>
+            <p className="text-xs text-muted">
+              Khách tự chuyển qua PayPal rồi gửi ảnh chụp cho admin qua Telegram — không gọi API PayPal. Admin xác nhận
+              bằng nút &quot;Đã nhận tiền&quot; sẵn có như VietQR. Số tiền hiện cho khách = giá quy đổi USD (theo tỷ giá
+              USDT/VND bên dưới) cộng thêm 10% bù phí PayPal.
+            </p>
+            <Field label="Email PayPal nhận tiền">
+              <input className={inputCls} type="email" value={form.paypalEmail} onChange={(e) => setForm({ ...form, paypalEmail: e.target.value })} />
+            </Field>
           </Card>
 
           <Card className="space-y-3 p-4">
