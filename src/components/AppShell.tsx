@@ -12,6 +12,7 @@ const NAV = [
   { label: "Gói cước", href: "/plans" },
   { label: "Gói mua thêm", href: "/addons" },
   { label: "Cert Shop", href: "/cert-shop" },
+  { label: "Link rút gọn", href: "/short-links" },
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
