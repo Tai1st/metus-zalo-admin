@@ -133,7 +133,11 @@ export function PlansTab() {
   }
 
   async function deactivate(p: LinkPlan) {
-    if (!confirm(`Ngừng bán gói "${p.name}"? Người đã dùng vẫn giữ nguyên gói.`)) return;
+    const msg =
+      p.code === "free"
+        ? "Tắt gói miễn phí? Người chưa mua gói sẽ KHÔNG tạo được link mới (link đã tạo vẫn hoạt động). Bật lại bằng nút Sửa, tick Đang bán."
+        : `Ngừng bán gói "${p.name}"? Người đã dùng vẫn giữ nguyên gói.`;
+    if (!confirm(msg)) return;
     setMsg("");
     try {
       await apiSend(`/api/short-links/plans/${p.code}`, "DELETE");
@@ -196,7 +200,7 @@ export function PlansTab() {
                   <Button variant="ghost" size="sm" onClick={() => openEdit(p)}>
                     Sửa
                   </Button>{" "}
-                  {p.isActive && p.code !== "free" && (
+                  {p.isActive && (
                     <Button variant="ghost" size="sm" onClick={() => deactivate(p)}>
                       Ngừng bán
                     </Button>
