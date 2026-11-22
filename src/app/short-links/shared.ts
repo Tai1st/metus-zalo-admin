@@ -15,6 +15,9 @@ export type LinkPlan = {
   maxCustomDomains: number;
   isActive: boolean;
   sortOrder: number;
+  /** % giảm khi mua 3 tháng / 1 năm; giá các kỳ này do backend tự tính từ giá 1 tháng. */
+  discount3?: number;
+  discount12?: number;
 };
 
 export const PERIOD_LABEL: Record<string, string> = {

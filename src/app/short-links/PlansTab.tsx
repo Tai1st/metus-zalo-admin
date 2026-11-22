@@ -57,8 +57,8 @@ function toForm(p: LinkPlan): FormState {
     limit: String(p.limit),
     period: p.period,
     price1: String(p.prices.find((x) => x.months === 1)?.price ?? ""),
-    disc3: String(discountOf(p.prices, 3, 17)),
-    disc12: String(discountOf(p.prices, 12, 24)),
+    disc3: String(p.discount3 ?? 17),
+    disc12: String(p.discount12 ?? 24),
     systemDomains: p.systemDomains.join(", "),
     maxCustomDomains: String(p.maxCustomDomains),
     isActive: p.isActive,
@@ -76,14 +76,6 @@ function buildPrices(price1: number, disc3: number, disc12: number) {
     { months: 3, price: at(3, disc3) },
     { months: 12, price: at(12, disc12) },
   ];
-}
-
-/** % giảm hiện tại của một kỳ so với mua lẻ từng tháng (điền sẵn khi sửa gói). */
-function discountOf(prices: { months: number; price: number }[], months: number, fallback: number) {
-  const base = prices.find((x) => x.months === 1)?.price;
-  const price = prices.find((x) => x.months === months)?.price;
-  if (!base || !price) return fallback;
-  return Math.max(0, Math.min(90, Math.round((1 - price / (base * months)) * 100)));
 }
 
 function formPrices(f: FormState) {
@@ -124,7 +116,10 @@ export function PlansTab() {
         description: form.description.trim() || undefined,
         limit: Number(form.limit),
         period: form.period,
-        prices: formPrices(form),
+        // Chỉ gửi giá 1 tháng; backend tự tính giá 3 tháng và 1 năm theo % giảm.
+        prices: formPrices(form).filter((x) => x.months === 1),
+        discount3: Number(form.disc3) || 0,
+        discount12: Number(form.disc12) || 0,
         systemDomains: form.systemDomains
           .split(/[,\n]/)
           .map((s) => s.trim().toLowerCase())
