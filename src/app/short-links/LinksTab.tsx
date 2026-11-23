@@ -25,6 +25,7 @@ type ShortLink = {
   webUrl: string;
   domain: string;
   ownerId: string;
+  owner?: { username: string; fullName: string } | null;
   clicks: number;
   createdAt: string;
 };
@@ -76,7 +77,18 @@ export function LinksTab() {
               <Td>
                 <Badge>{l.kind === "product" ? "Sản phẩm" : "Chiến dịch"}</Badge>
               </Td>
-              <Td className="font-mono text-xs">{l.ownerId}</Td>
+              <Td>
+                {l.owner ? (
+                  <>
+                    <div>{l.owner.username}</div>
+                    {l.owner.fullName && <div className="text-xs text-muted">{l.owner.fullName}</div>}
+                  </>
+                ) : (
+                  <span className="font-mono text-xs text-muted" title="Không tìm thấy tài khoản">
+                    {l.ownerId || "—"}
+                  </span>
+                )}
+              </Td>
               <Td>{l.clicks}</Td>
               <Td className="text-xs text-muted">{fmtTime(l.createdAt)}</Td>
               <Td className="text-right">

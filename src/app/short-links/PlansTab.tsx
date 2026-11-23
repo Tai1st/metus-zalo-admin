@@ -262,7 +262,7 @@ export function PlansTab() {
               <Field label="Số link mỗi chu kỳ">
                 <input
                   type="number"
-                  min={1}
+                  min={0}
                   className={inputCls}
                   value={form.limit}
                   onChange={(e) => set("limit", e.target.value)}
