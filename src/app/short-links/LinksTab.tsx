@@ -29,12 +29,15 @@ type ShortLink = {
   createdAt: string;
 };
 
+/** Link tạo khi chưa chọn tên miền (dữ liệu cũ) mở trên tên miền mặc định của trang rút gọn. */
+const DEFAULT_HOST = "link.metus.vn";
+
 export function LinksTab() {
   const { data, loading, error, reload } = useApi<ShortLink[]>("/api/short-links/links");
   const [msg, setMsg] = useState("");
 
   async function remove(l: ShortLink) {
-    if (!confirm(`Xóa link ${l.domain}/${l.code}? Không thể hoàn tác.`)) return;
+    if (!confirm(`Xóa link ${l.domain || DEFAULT_HOST}/${l.code}? Không thể hoàn tác.`)) return;
     setMsg("");
     try {
       await apiSend(`/api/short-links/links/${l.id}`, "DELETE");
@@ -65,7 +68,7 @@ export function LinksTab() {
           {(data ?? []).map((l) => (
             <Tr key={l.id}>
               <Td className="font-mono text-xs">
-                {l.domain}/{l.code}
+                {l.domain ? l.domain : <span className="text-muted">{DEFAULT_HOST}</span>}/{l.code}
               </Td>
               <Td className="max-w-64 truncate">
                 <span title={l.title}>{l.title}</span>
