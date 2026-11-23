@@ -26,6 +26,8 @@ type Customer = {
   phone: string;
   /** user = dùng gói Zalo; shop = khách Link / Cert shop. */
   role: "user" | "shop";
+  /** Khách shop dùng Link rút gọn và/hoặc Cert shop (rỗng = chưa phát sinh gì). */
+  shopKinds?: ("link" | "cert")[];
   isActive: boolean;
   allowedZaloIds: string[];
   createdAt: string;
@@ -46,11 +48,39 @@ type Dialog =
   | { kind: "password"; customer: Customer }
   | { kind: "delete"; customer: Customer };
 
+type Filter = "all" | "zalo" | "link" | "cert";
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: "all", label: "Tất cả" },
+  { key: "zalo", label: "Zalo" },
+  { key: "link", label: "Link rút gọn" },
+  { key: "cert", label: "Cert shop" },
+];
+
+const matches = (c: Customer, f: Filter) =>
+  f === "all" ||
+  (f === "zalo" && c.role === "user") ||
+  (f === "link" && !!c.shopKinds?.includes("link")) ||
+  (f === "cert" && !!c.shopKinds?.includes("cert"));
+
+function KindBadges({ c }: { c: Customer }) {
+  if (c.role === "user") return <Badge tone="success">Zalo</Badge>;
+  const k = c.shopKinds ?? [];
+  if (!k.length) return <Badge>Chưa dùng</Badge>;
+  return (
+    <div className="flex flex-wrap gap-1">
+      {k.includes("link") && <Badge tone="warning">Link rút gọn</Badge>}
+      {k.includes("cert") && <Badge tone="default">Cert shop</Badge>}
+    </div>
+  );
+}
+
 export default function CustomersPage() {
   const cust = useApi<Customer[]>("/api/customers");
   const subs = useApi<Sub[]>("/api/subscriptions");
   const [busy, setBusy] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Dialog | null>(null);
+  const [filter, setFilter] = useState<Filter>("all");
+  const shown = (cust.data ?? []).filter((c) => matches(c, filter));
 
   const activeByUser = new Map<string, Sub>();
   for (const s of subs.data ?? []) {
@@ -78,6 +108,19 @@ export default function CustomersPage() {
         subtitle="Tài khoản khách: dùng gói Zalo, Link rút gọn hoặc Cert shop (không gồm nhân sự / quản trị viên)."
         action={<Button onClick={() => setDialog({ kind: "create" })}>+ Thêm khách hàng</Button>}
       />
+      <div className="mb-3 flex flex-wrap gap-2">
+        {FILTERS.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            className={`rounded-full border px-3 py-1 text-xs ${
+              filter === f.key ? "border-brand bg-brand text-white" : "border-border bg-surface hover:bg-background"
+            }`}
+          >
+            {f.label} ({(cust.data ?? []).filter((c) => matches(c, f.key)).length})
+          </button>
+        ))}
+      </div>
       <Card className="p-0">
         <Table minWidth={1000}>
           <Thead>
@@ -91,14 +134,14 @@ export default function CustomersPage() {
             <Th className="text-right">Thao tác</Th>
           </Thead>
           <tbody>
-            {(cust.data ?? []).map((c) => {
+            {shown.map((c) => {
               const sub = activeByUser.get(c.username);
               return (
                 <Tr key={c.id}>
                   <Td className="font-medium">{c.username}</Td>
                   <Td>{c.fullName || "—"}</Td>
                   <Td>
-                    {c.role === "shop" ? <Badge tone="warning">Link / Cert shop</Badge> : <Badge tone="success">Zalo</Badge>}
+                    <KindBadges c={c} />
                   </Td>
                   <Td>
                     {c.role === "shop" ? (
@@ -159,7 +202,7 @@ export default function CustomersPage() {
                 </Tr>
               );
             })}
-            {(cust.data ?? []).length === 0 && (
+            {shown.length === 0 && (
               <TableEmpty colSpan={8}>
                 {cust.loading
                   ? "Đang tải…"
