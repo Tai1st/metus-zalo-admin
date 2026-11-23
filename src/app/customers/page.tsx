@@ -24,6 +24,8 @@ type Customer = {
   username: string;
   fullName: string;
   phone: string;
+  /** user = dùng gói Zalo; shop = khách Link / Cert shop. */
+  role: "user" | "shop";
   isActive: boolean;
   allowedZaloIds: string[];
   createdAt: string;
@@ -73,14 +75,15 @@ export default function CustomersPage() {
     <div>
       <PageHeader
         title="Khách hàng"
-        subtitle="Tài khoản đăng nhập để mua và dùng gói (không gồm nhân sự / quản trị viên)."
+        subtitle="Tài khoản khách: dùng gói Zalo, Link rút gọn hoặc Cert shop (không gồm nhân sự / quản trị viên)."
         action={<Button onClick={() => setDialog({ kind: "create" })}>+ Thêm khách hàng</Button>}
       />
       <Card className="p-0">
-        <Table minWidth={900}>
+        <Table minWidth={1000}>
           <Thead>
             <Th>Tên đăng nhập</Th>
             <Th>Họ tên</Th>
+            <Th>Loại</Th>
             <Th>Gói hiện tại</Th>
             <Th>Nhân sự tối đa</Th>
             <Th>Ngày tạo</Th>
@@ -95,7 +98,12 @@ export default function CustomersPage() {
                   <Td className="font-medium">{c.username}</Td>
                   <Td>{c.fullName || "—"}</Td>
                   <Td>
-                    {sub ? (
+                    {c.role === "shop" ? <Badge tone="warning">Link / Cert shop</Badge> : <Badge tone="success">Zalo</Badge>}
+                  </Td>
+                  <Td>
+                    {c.role === "shop" ? (
+                      <span className="text-muted">—</span>
+                    ) : sub ? (
                       <>
                         <div>{sub.snapshot.planName}</div>
                         <div className="text-xs text-muted">
@@ -109,7 +117,7 @@ export default function CustomersPage() {
                       <span className="text-muted">Chưa có gói</span>
                     )}
                   </Td>
-                  <Td>{sub ? sub.snapshot.maxUsers : "—"}</Td>
+                  <Td>{sub && c.role !== "shop" ? sub.snapshot.maxUsers : "—"}</Td>
                   <Td className="text-muted">
                     {new Date(c.createdAt).toLocaleDateString("vi-VN")}
                   </Td>
@@ -136,21 +144,23 @@ export default function CustomersPage() {
                       >
                         {c.isActive ? "Khoá" : "Mở khoá"}
                       </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        disabled={busy === c.id}
-                        onClick={() => setDialog({ kind: "delete", customer: c })}
-                      >
-                        Xoá
-                      </Button>
+                      {c.role !== "shop" && (
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          disabled={busy === c.id}
+                          onClick={() => setDialog({ kind: "delete", customer: c })}
+                        >
+                          Xoá
+                        </Button>
+                      )}
                     </div>
                   </Td>
                 </Tr>
               );
             })}
             {(cust.data ?? []).length === 0 && (
-              <TableEmpty colSpan={7}>
+              <TableEmpty colSpan={8}>
                 {cust.loading
                   ? "Đang tải…"
                   : cust.error
