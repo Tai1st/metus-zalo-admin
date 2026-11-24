@@ -30,6 +30,7 @@ type FormState = {
   disc12: string; // % giảm khi mua 1 năm
   systemDomains: string; // comma/newline separated hosts
   maxCustomDomains: string;
+  shopeeLimit: string;
   isActive: boolean;
   sortOrder: string;
 };
@@ -45,6 +46,7 @@ const EMPTY: FormState = {
   disc12: "24",
   systemDomains: "",
   maxCustomDomains: "0",
+  shopeeLimit: "0",
   isActive: true,
   sortOrder: "0",
 };
@@ -61,6 +63,7 @@ function toForm(p: LinkPlan): FormState {
     disc12: String(p.discount12 ?? 24),
     systemDomains: p.systemDomains.join(", "),
     maxCustomDomains: String(p.maxCustomDomains),
+    shopeeLimit: String(p.shopeeLimit ?? 0),
     isActive: p.isActive,
     sortOrder: String(p.sortOrder),
   };
@@ -125,6 +128,7 @@ export function PlansTab() {
           .map((s) => s.trim().toLowerCase())
           .filter(Boolean),
         maxCustomDomains: Number(form.maxCustomDomains) || 0,
+        shopeeLimit: Number(form.shopeeLimit) || 0,
         isActive: form.isActive,
         sortOrder: Number(form.sortOrder) || 0,
       };
@@ -196,6 +200,7 @@ export function PlansTab() {
                 </Td>
                 <Td>
                   {p.limit} link / {PERIOD_LABEL[p.period] ?? p.period}
+                  <div className="text-xs text-muted">Shopee: {p.shopeeLimit ?? 0}</div>
                 </Td>
                 <Td className="text-xs text-muted">
                   {p.prices.length
@@ -341,6 +346,15 @@ export function PlansTab() {
                   className={inputCls}
                   value={form.maxCustomDomains}
                   onChange={(e) => set("maxCustomDomains", e.target.value)}
+                />
+              </Field>
+              <Field label="Số deeplink Shopee mỗi chu kỳ (0 = không)">
+                <input
+                  type="number"
+                  min={0}
+                  className={inputCls}
+                  value={form.shopeeLimit}
+                  onChange={(e) => set("shopeeLimit", e.target.value)}
                 />
               </Field>
               <Field label="Thứ tự hiển thị">

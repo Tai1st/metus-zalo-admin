@@ -13,6 +13,8 @@ export type LinkPlan = {
   currency: string;
   systemDomains: string[];
   maxCustomDomains: number;
+  /** Số deeplink Shopee mỗi chu kỳ (tính riêng với deeplink TikTok). */
+  shopeeLimit?: number;
   isActive: boolean;
   sortOrder: number;
   /** % giảm khi mua 3 tháng / 1 năm; giá các kỳ này do backend tự tính từ giá 1 tháng. */
